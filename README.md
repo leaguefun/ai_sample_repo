@@ -173,3 +173,58 @@ git pull --recurse-submodules
 # or
 git submodule update --remote
 ```
+
+---
+
+## Bundle (generated)
+
+The `bundle` branch (submodule: `bundle/`) is a **generated, single-folder
+deployment** built from the three source branches.  Never hand-edit it — run the
+script instead.
+
+```
+bundle/
+├── server.js        ← backend/server.js
+├── cli.js           ← cli/cli.js
+├── public/          ← Angular browser build output
+├── .env             PUBLIC_DIR=./public  (Bun auto-loads this)
+├── package.json     "start": "bun server.js"  (no "type" field)
+├── Dockerfile       FROM oven/bun:1-alpine
+├── .dockerignore
+└── railway.json     builder: DOCKERFILE
+```
+
+### Building the bundle
+
+```sh
+# dry-run: assemble + commit locally, nothing pushed
+node scripts/build-bundle.mjs
+
+# full release: assemble + commit + push bundle branch + main
+node scripts/build-bundle.mjs --push
+```
+
+The script is **idempotent** — it checks staged diffs before every `git commit`
+and skips if nothing changed.
+
+### What the script does
+
+1. `git submodule update --init --remote backend frontend cli` — pulls source branches to their tips
+2. `npm install && npx ng build` in `frontend/` — builds the Angular SPA
+3. Copies `server.js`, `cli.js`, and the browser build into `bundle/`; writes
+   `.env`, `package.json`, `Dockerfile`, `.dockerignore`, `railway.json`
+4. Commits inside `bundle/` and bumps the pointer in the superproject
+
+### Deploying
+
+```sh
+# Docker
+docker build -t snip bundle/
+docker run -p 3000:3000 snip
+
+# Railway — point at the bundle/ subdirectory (or bundle branch)
+# railway.json already selects the Dockerfile builder
+
+# Local Bun
+cd bundle && bun start   # serves API + SPA on http://localhost:3000
+```
