@@ -1,0 +1,56 @@
+﻿<main>
+  <h1>&#9986;&#65039; Snip</h1>
+
+  <section class="shorten-form">
+    <form (ngSubmit)="submit()">
+      <input
+        type="url"
+        [(ngModel)]="urlInput"
+        name="url"
+        placeholder="https://example.com/very/long/path"
+        autocomplete="off"
+        [disabled]="loading()"
+      />
+      <button type="submit" [disabled]="loading()">
+        {{ loading() ? 'Shortening…' : 'Shorten' }}
+      </button>
+    </form>
+
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    @if (result(); as r) {
+      <div class="result">
+        Short link:
+        <a [href]="r.shortUrl" target="_blank" rel="noopener">{{ r.shortUrl }}</a>
+      </div>
+    }
+  </section>
+
+  <section class="links-table">
+    <h2>All links</h2>
+    @if (links().length === 0) {
+      <p class="empty">No links yet.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Original URL</th>
+            <th>Hits</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (link of links(); track link.code) {
+            <tr>
+              <td><a [href]="link.shortUrl" target="_blank" rel="noopener">{{ link.code }}</a></td>
+              <td class="original">{{ link.url }}</td>
+              <td>{{ link.hits }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </section>
+</main>
