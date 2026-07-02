@@ -1,0 +1,6 @@
+# nixpacks.toml — only used if Railway falls back to the Nixpacks builder.
+# Ensures Bun is installed so the start command works.
+providers = ["bun"]
+
+[start]
+cmd = "bun server.js"
