@@ -118,24 +118,58 @@ writeFileSync(join(bundleDir, 'Dockerfile'), [
 ].join('\n'));
 console.log('  ✓ Dockerfile');
 
-// — .dockerignore
+// — .dockerignore  (keep CI-only config files out of the image)
 writeFileSync(join(bundleDir, '.dockerignore'), [
   '.git',
   'node_modules',
   '*.md',
+  'Dockerfile',
+  '.dockerignore',
+  'railway.json',
+  'Procfile',
+  'nixpacks.toml',
   '',
 ].join('\n'));
 console.log('  ✓ .dockerignore');
 
-// — railway.json  (selects the DOCKERFILE builder)
+// — railway.json
+// Fix: add explicit dockerfilePath so Railway always finds the Dockerfile,
+// and add deploy.startCommand so Railway never falls back to looking for a
+// generated start.sh that does not exist in the image.
 writeFileSync(
   join(bundleDir, 'railway.json'),
   JSON.stringify({
     $schema: 'https://railway.app/railway.schema.json',
-    build: { builder: 'DOCKERFILE' },
+    build: {
+      builder: 'DOCKERFILE',
+      dockerfilePath: 'Dockerfile',
+    },
+    deploy: {
+      startCommand: 'bun server.js',
+    },
   }, null, 2) + '\n'
 );
 console.log('  ✓ railway.json');
+
+// — Procfile  (Nixpacks / Heroku builder fallback start command)
+// If Railway ever ignores railway.json and falls back to Nixpacks, this file
+// tells it the correct start command instead of auto-generating a broken start.sh.
+writeFileSync(join(bundleDir, 'Procfile'), 'web: bun server.js\n');
+console.log('  ✓ Procfile');
+
+// — nixpacks.toml  (forces Bun provider when Nixpacks is the builder)
+// Without this, Nixpacks detects Node.js (no bun.lockb present) and generates
+// a start.sh that calls `bun` on a plain Node runtime → "Script start.sh not found".
+writeFileSync(join(bundleDir, 'nixpacks.toml'), [
+  '# nixpacks.toml — only used if Railway falls back to the Nixpacks builder.',
+  '# Ensures Bun is installed so the start command works.',
+  'providers = ["bun"]',
+  '',
+  '[start]',
+  'cmd = "bun server.js"',
+  '',
+].join('\n'));
+console.log('  ✓ nixpacks.toml');
 
 // ──────────────────────────────────────────────────────────────────────────
 // 4 / 4  Commit inside bundle/, bump pointer in the superproject
