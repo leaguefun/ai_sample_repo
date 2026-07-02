@@ -1,0 +1,4 @@
+#!/bin/sh
+# Unix wrapper — forwards all arguments to cli.js.
+# Make executable: chmod +x snip
+node "$(dirname "$0")/cli.js" "$@"
